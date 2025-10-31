@@ -28,13 +28,14 @@ export default function CosmosParticles() {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    // particles
+    // particles (velocidades más pequeñas por defecto)
     const particleCount = 80;
     particlesRef.current = Array.from({ length: particleCount }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      vx: (Math.random() - 10) * 10,
-      vy: (Math.random() - 10) * 10,
+      // velocidades pequeñas y suaves para evitar salir del canvas inmediatamente
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
       connections: [],
     }));
 
@@ -45,10 +46,21 @@ export default function CosmosParticles() {
 
     window.addEventListener("mousemove", handleMouseMove);
 
-    // Animacion dx
+    // Ajuste para pantallas de alta densidad (retina)
+    const dpr = window.devicePixelRatio || 1;
+    // set canvas pixel size and CSS size
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    canvas.style.width = `${window.innerWidth}px`;
+    canvas.style.height = `${window.innerHeight}px`;
+    ctx.scale(dpr, dpr);
+
+    // Animacion
+    let rafId = 0;
     const animate = () => {
+      ctx.save();
       ctx.fillStyle = "hsla(240, 25%, 2%, 1.00)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
       const particles = particlesRef.current;
       const mouse = mouseRef.current;
@@ -58,10 +70,11 @@ export default function CosmosParticles() {
         // Mouse attraction
         const dx = mouse.x - particle.x;
         const dy = mouse.y - particle.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const distance = Math.sqrt(dx * dx + dy * dy) || 0.0001;
 
         if (distance < 200) {
           const force = (200 - distance) / 200;
+          // proteger contra división por cero
           particle.vx += (dx / distance) * force * 15;
           particle.vy += (dy / distance) * force * 15;
         }
@@ -121,7 +134,8 @@ export default function CosmosParticles() {
         ctx.fill();
       });
 
-      requestAnimationFrame(animate);
+      ctx.restore();
+      rafId = requestAnimationFrame(animate);
     };
 
     animate();
@@ -129,6 +143,7 @@ export default function CosmosParticles() {
     return () => {
       window.removeEventListener("resize", resizeCanvas);
       window.removeEventListener("mousemove", handleMouseMove);
+      cancelAnimationFrame(rafId);
     };
   }, []);
 
@@ -136,7 +151,7 @@ export default function CosmosParticles() {
     <canvas
       ref={canvasRef}
       id="neural-canvas"
-      className="fixed inset-0 -z-10"
+      className="fixed inset-0 -z-10 pointer-events-none"
     />
   );
 }
