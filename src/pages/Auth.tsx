@@ -1,50 +1,94 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import CosmosParticles from '@/components/CosmosParticles';
-import { Rocket, Mail, Lock } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CosmosParticles from "@/components/CosmosParticles";
+import { Rocket, Mail, Lock } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState<string>("torres13@gmail.com");
+  const [password, setPassword] = useState<string>("12345678");
   const { toast } = useToast();
-
+  const navigate = useNavigate();
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulated auth - replace with actual Supabase auth
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // call backend demo auth
+      const res = await (
+        await fetch(`${import.meta.env.VITE_API_BASE_URL || ""}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        })
+      ).json();
+
+      if (res?.token) {
+        try {
+          localStorage.setItem("rp_token", res.token);
+          localStorage.setItem("rp_user_logged_in", "1");
+        } catch (err) {
+          console.debug("storage error", err);
+        }
+        toast({
+          title: "Bienvenido de vuelta!",
+          description: "Iniciando sesión...",
+        });
+        navigate("/dashboard");
+        return;
+      }
+
+      // fallback error
       toast({
-        title: "Bienvenido de vuelta!",
-        description: "Iniciando sesión...",
+        title: "Error al iniciar sesión",
+        description: res?.error || "Credenciales inválidas",
       });
-    }, 1500);
+    } catch (err: any) {
+      console.error("login error", err);
+      toast({ title: "Error", description: String(err.message || err) });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     setTimeout(() => {
       setIsLoading(false);
       toast({
         title: "Cuenta creada!",
         description: "Configurando tu espacio...",
       });
+      try {
+        localStorage.setItem("rp_user_logged_in", "1");
+      } catch (e) {
+        console.debug("storage error", e);
+      }
+      navigate("/dashboard");
     }, 1500);
   };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center px-6 py-12">
       <CosmosParticles />
-      
-      <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 group z-10">
+
+      <Link
+        to="/"
+        className="absolute top-8 left-8 flex items-center gap-2 group z-10"
+      >
         <div className="p-2 rounded-lg bg-gradient-to-br from-purple-600 to-cyan-500 cosmic-glow">
           <Rocket className="w-5 h-5 text-white" />
         </div>
@@ -66,7 +110,7 @@ const Auth = () => {
               <TabsTrigger value="signin">Iniciar Sesión</TabsTrigger>
               <TabsTrigger value="signup">Registrarse</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
@@ -78,6 +122,10 @@ const Auth = () => {
                       placeholder="tu@email.com"
                       type="email"
                       className="pl-10 glass-card"
+                      value={email}
+                      onChange={(e) =>
+                        setEmail((e.target as HTMLInputElement).value)
+                      }
                       required
                     />
                   </div>
@@ -91,6 +139,10 @@ const Auth = () => {
                       placeholder="••••••••"
                       type="password"
                       className="pl-10 glass-card"
+                      value={password}
+                      onChange={(e) =>
+                        setPassword((e.target as HTMLInputElement).value)
+                      }
                       required
                     />
                   </div>
@@ -104,7 +156,7 @@ const Auth = () => {
                 </Button>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">

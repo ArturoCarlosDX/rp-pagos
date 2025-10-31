@@ -22,6 +22,31 @@ app.use(bodyParser.json());
 // Health
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
+// Simple demo auth endpoint
+// In production use a proper user store and secure password handling.
+app.post("/api/auth/login", (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const DEMO_EMAIL = process.env.DEMO_USER_EMAIL || "torres13@gmail.com";
+    const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD || "12345678";
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "email and password required" });
+    }
+
+    if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
+      // Return a simple demo token. Replace with JWT or similar in real apps.
+      const token = "demo-token";
+      return res.json({ token, user: { email } });
+    }
+
+    return res.status(401).json({ error: "Invalid credentials" });
+  } catch (err) {
+    console.error("auth error", err);
+    return res.status(500).json({ error: "auth error", details: String(err) });
+  }
+});
+
 // Create payment preference (Checkout Pro)
 app.post("/api/payments/create", async (req, res) => {
   try {
